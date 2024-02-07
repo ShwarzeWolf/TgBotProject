@@ -1,3 +1,5 @@
+import random
+
 import telebot
 import requests
 import settings
@@ -19,6 +21,12 @@ def get_weather(message):
         bot.send_message(message.chat.id, weather["weather"][0]["description"])
     else:
         bot.send_message(message.chat.id, 'Сервис определния погоды недоступен, пожалуйста, попробуйте позже')
+
+
+@bot.message_handler(commands=['get_fox'])
+def get_fox(message):
+    url = f'https://randomfox.ca/images/{random.randint(1, 100)}.jpg'
+    bot.send_photo(message.chat.id, url)
 
 
 bot.polling()
