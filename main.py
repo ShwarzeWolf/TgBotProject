@@ -13,7 +13,6 @@ cities = {
     'Yerevan': Coordinates(40.178, 40.505),
 }
 
-users = {}  # всегда сбрасывается -> базы данных
 
 INSERT_CITY_QUERY = '''
     INSERT INTO user_cities VALUES(?, ?)
@@ -22,7 +21,10 @@ SELECT_USERS_CITY_QUERY = '''
     SELECT city FROM user_cities
     WHERE chat_id = (?)
 '''
-
+UPDATE_USER_CITY_QUERY = '''
+    UPDATE user_cities SET city = (?) 
+    WHERE chat_id = (?)
+'''
 
 @bot.message_handler(commands=['start'])
 def greet_human(message):
@@ -73,10 +75,11 @@ def proceed_city(message):
 
     res = cursor.execute(SELECT_USERS_CITY_QUERY, (message.chat.id,)).fetchone()
     if res:
-        print(res)
+        cursor.execute(UPDATE_USER_CITY_QUERY, (message.text, message.chat.id))
     else:
         cursor.execute(INSERT_CITY_QUERY, (message.chat.id, message.text))
-        connection.commit()
+
+    connection.commit()
 
 
 bot.polling()
