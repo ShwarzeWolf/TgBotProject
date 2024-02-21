@@ -1,5 +1,6 @@
 import random
 from collections import namedtuple
+import sqlite3
 
 import telebot
 import requests
@@ -14,6 +15,14 @@ cities = {
 
 users = {}  # всегда сбрасывается -> базы данных
 
+INSERT_CITY_QUERY = '''
+    INSERT INTO user_cities VALUES(?, ?)
+'''
+SELECT_USERS_CITY_QUERY = '''
+    SELECT city FROM user_cities
+    WHERE chat_id = (?)
+'''
+
 
 @bot.message_handler(commands=['start'])
 def greet_human(message):
@@ -22,7 +31,13 @@ def greet_human(message):
 
 @bot.message_handler(commands=['get_weather'])
 def get_weather(message):
-    user_city = users.get(message.chat.id)
+    connection = sqlite3.connect('users.db')
+    cursor = connection.cursor()
+
+    res = cursor.execute(SELECT_USERS_CITY_QUERY, (message.chat.id,)).fetchone()
+    user_city = None
+    if res:
+        user_city = res[0]
 
     if user_city and user_city in cities:
         coordinates = cities[user_city]
@@ -52,7 +67,16 @@ def ask_city(message):
 
 def proceed_city(message):
     bot.send_message(message.chat.id, f'Какой хороший город - {message.text}!')
-    users[message.chat.id] = message.text
+
+    connection = sqlite3.connect('users.db')
+    cursor = connection.cursor()
+
+    res = cursor.execute(SELECT_USERS_CITY_QUERY, (message.chat.id,)).fetchone()
+    if res:
+        print(res)
+    else:
+        cursor.execute(INSERT_CITY_QUERY, (message.chat.id, message.text))
+        connection.commit()
 
 
 bot.polling()
