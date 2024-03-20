@@ -1,30 +1,24 @@
 import random
 from collections import namedtuple
-import sqlite3
 
 import telebot
 import requests
-import settings
+import os
 
-bot = telebot.TeleBot(settings.TOKEN)
+TOKEN = os.getenv("TOKEN")
+
+
+from logging_setup import logging
+
+from repositories import get_users_city, insert_user_city, update_user_city
+
+bot = telebot.TeleBot(TOKEN)
 
 Coordinates = namedtuple('Coordinates', ('latitude', 'longitude'))
 cities = {
     'Yerevan': Coordinates(40.178, 40.505),
 }
 
-
-INSERT_CITY_QUERY = '''
-    INSERT INTO user_cities VALUES(?, ?)
-'''
-SELECT_USERS_CITY_QUERY = '''
-    SELECT city FROM user_cities
-    WHERE chat_id = (?)
-'''
-UPDATE_USER_CITY_QUERY = '''
-    UPDATE user_cities SET city = (?) 
-    WHERE chat_id = (?)
-'''
 
 @bot.message_handler(commands=['start'])
 def greet_human(message):
@@ -33,13 +27,8 @@ def greet_human(message):
 
 @bot.message_handler(commands=['get_weather'])
 def get_weather(message):
-    connection = sqlite3.connect('users.db')
-    cursor = connection.cursor()
-
-    res = cursor.execute(SELECT_USERS_CITY_QUERY, (message.chat.id,)).fetchone()
-    user_city = None
-    if res:
-        user_city = res[0]
+    user_city = get_users_city(message.chat.id)
+    logging.info(f'the city {user_city} was requested')
 
     if user_city and user_city in cities:
         coordinates = cities[user_city]
@@ -70,16 +59,11 @@ def ask_city(message):
 def proceed_city(message):
     bot.send_message(message.chat.id, f'Какой хороший город - {message.text}!')
 
-    connection = sqlite3.connect('users.db')
-    cursor = connection.cursor()
-
-    res = cursor.execute(SELECT_USERS_CITY_QUERY, (message.chat.id,)).fetchone()
-    if res:
-        cursor.execute(UPDATE_USER_CITY_QUERY, (message.text, message.chat.id))
+    user_city = get_users_city(message.chat.id)
+    if user_city:
+        update_user_city(message.chat.id, message.text)
     else:
-        cursor.execute(INSERT_CITY_QUERY, (message.chat.id, message.text))
-
-    connection.commit()
+        insert_user_city(message.chat.id, message.text)
 
 
 bot.polling()

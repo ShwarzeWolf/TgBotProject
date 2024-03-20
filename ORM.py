@@ -20,7 +20,7 @@ class User(Base):
         return f'User#id:{self.id}#city:{self.city}'
 
 
-engine = create_engine('sqlite://', echo=True)
+engine = create_engine(r'C:\Users\bkris\PycharmProjects\TgBotTest\test.db', echo=True)
 Base.metadata.create_all(engine)
 
 # first endpoint
@@ -42,4 +42,4 @@ users = select(User).where(User.city.in_(['Surgut', 'Yerevan']))
 for user in session.scalars(users):
     print(user)
 
-
+# install docker 
